@@ -53,10 +53,24 @@ public class HashTest {
         System.err.println(Long.MAX_VALUE);
     }
 
+    //https://s16.postimg.org/dthtvw3id/binary_curl.png
+    private static boolean truth_r(boolean a, boolean b, boolean c, boolean d) {
+        return ((a ^ d) ^ (!b || c));
+    }
+
+    private static boolean truth_l(boolean a, boolean b, boolean c, boolean d) {
+        return ((b ^ c) || (truth_r(a,b,c,d)));
+    }
+
+    private static void truth(boolean a, boolean b, boolean c, boolean d) {
+        System.err.println(!truth_r(a,b,c,d) + " " + truth_l(a,b,c,d));
+    }
+
     @Test
     public void shouldBooleanLogicMatchTruthTable() {
         for (int i = 0; i<=10;i++) {
             System.err.println(IotaCurlUtils.TRUTH_TABLE[i]);
         }
+        truth(true,true,true,true);
     }
 }

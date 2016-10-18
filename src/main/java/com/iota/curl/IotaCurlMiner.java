@@ -30,6 +30,7 @@ public class IotaCurlMiner {
     public static final int TX_HEADER_SZ = 2430;
 
     private static final int HASH_SIZE = 3*IotaCurlHash.IOTACURL_HASH_SZ;
+    private static final int STATE_SIZE = 3*IotaCurlHash.IOTACURL_STATE_SZ;
 
     private final BigInteger[] midState = createMidStateArray();
 
@@ -78,7 +79,7 @@ public class IotaCurlMiner {
                 final BigInteger c = c(a);
                 state1[0] = d(b, c);
             }
-            for (int i = 0; i < (3*IotaCurlHash.IOTACURL_STATE_SZ / 2); i++) {
+            for (int i = 0; i < (STATE_SIZE / 2); i++) {
                 final BigInteger a3 = state2[364 - i - 1];
                 final BigInteger a1 = state2[364 - i];
                 final BigInteger a2 = state2[729 - i - 1];
@@ -95,7 +96,7 @@ public class IotaCurlMiner {
 
     private long doWork(final int minWeightMagnitude, long offset) {
         final int [] an = Arrays.copyOf(approvalNonce, HASH_SIZE);
-        BigInteger [] state = Arrays.copyOf(midState, 3*IotaCurlHash.IOTACURL_STATE_SZ);
+        BigInteger [] state = Arrays.copyOf(midState, STATE_SIZE);
 
         IotaCurlUtils.iotaCurlTritsAdd(an, HASH_SIZE, offset);
 
@@ -139,7 +140,7 @@ public class IotaCurlMiner {
         final char[] trx = tx.toCharArray();
         ctx.doAbsorb(trx, TX_HEADER_SZ);
 
-        for (int i = 0; i < 3*IotaCurlHash.IOTACURL_STATE_SZ; i++) {
+        for (int i = 0; i < STATE_SIZE; i++) {
             midState[i] = (i < HASH_SIZE) ? BigInteger.ZERO
                     : MAP_EX[ctx.getCurlStateValue(i) + 1];
         }

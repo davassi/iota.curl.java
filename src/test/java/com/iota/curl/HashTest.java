@@ -52,4 +52,11 @@ public class HashTest {
         System.err.println(0xffffffffffffffffL);
         System.err.println(Long.MAX_VALUE);
     }
+
+    @Test
+    public void shouldBooleanLogicMatchTruthTable() {
+        for (int i = 0; i<=10;i++) {
+            System.err.println(IotaCurlUtils.TRUTH_TABLE[i]);
+        }
+    }
 }

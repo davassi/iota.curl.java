@@ -29,6 +29,8 @@ public class IotaCurlMiner {
     // The length of transaction header (before approvalNonce) in trytes.
     public static final int TX_HEADER_SZ = 2430;
 
+    private static final int HASH_SIZE = 3*IotaCurlHash.IOTACURL_HASH_SZ;
+
     private final BigInteger[] midState = createMidStateArray();
 
     private static BigInteger[] createMidStateArray() {
@@ -37,17 +39,17 @@ public class IotaCurlMiner {
         return bstat;
     }
 
-    private final int[] approvalNonce = new int[3*IotaCurlHash.IOTACURL_HASH_SZ];
-    private final int[] trunkTransaction = new int[3*IotaCurlHash.IOTACURL_HASH_SZ];
-    private final int[] branchTransaction = new int[3*IotaCurlHash.IOTACURL_HASH_SZ];
+    private final int[] approvalNonce = new int[HASH_SIZE];
+    private final int[] trunkTransaction = new int[HASH_SIZE];
+    private final int[] branchTransaction = new int[HASH_SIZE];
 
     private final int PARALLEL = 32;
 
-    private static long lc(long a) {
+    protected static long lc(long a) {
         return ((((a) ^ ((a)>>1)) & LMASK1) | (((a)<<1) & LMASK2));
     }
 
-    private static long ld(long b, long c) {
+    protected static long ld(long b, long c) {
         return (c) ^ (LMASK2 & (b) & (((b) & (c))<<1)) ^ (LMASK1 & ~(b) & (((b) & (c))>>1));
     }
 
@@ -60,7 +62,7 @@ public class IotaCurlMiner {
     }
 
     protected final void doPowAbsorb(final BigInteger[] state, final int[] trits) {
-        for (int i=0; i<3*IotaCurlHash.IOTACURL_HASH_SZ; i++) {
+        for (int i=0; i<HASH_SIZE; i++) {
             state[i] = MAP_EX[trits[i]+1];
         }
     }
@@ -92,17 +94,17 @@ public class IotaCurlMiner {
     }
 
     private long doWork(final int minWeightMagnitude, long offset) {
-        final int [] an = Arrays.copyOf(approvalNonce, 3*IotaCurlHash.IOTACURL_HASH_SZ);
+        final int [] an = Arrays.copyOf(approvalNonce, HASH_SIZE);
         BigInteger [] state = Arrays.copyOf(midState, 3*IotaCurlHash.IOTACURL_STATE_SZ);
 
-        IotaCurlUtils.iotaCurlTritsAdd(an, 3*IotaCurlHash.IOTACURL_HASH_SZ, offset);
+        IotaCurlUtils.iotaCurlTritsAdd(an, HASH_SIZE, offset);
 
         // Search. Process approvalNonce.
         for(int i=0; i<PARALLEL; i++) {
-            for(int j=0; j<3*IotaCurlHash.IOTACURL_HASH_SZ; j++) {
+            for(int j=0; j<HASH_SIZE; j++) {
                 state[j] = state[j].or((MAP[an[j]+1]).shiftLeft(i*2));
             }
-            IotaCurlUtils.iotaCurlTritsIncrement(an, 3*IotaCurlHash.IOTACURL_HASH_SZ);
+            IotaCurlUtils.iotaCurlTritsIncrement(an, HASH_SIZE);
         }
 
         doPowTransform(state);
@@ -119,7 +121,7 @@ public class IotaCurlMiner {
 
             boolean complete = true;
 
-            for(int j=3*IotaCurlHash.IOTACURL_HASH_SZ-minWeightMagnitude; j<3*IotaCurlHash.IOTACURL_HASH_SZ; j++) {
+            for(int j=HASH_SIZE-minWeightMagnitude; j<HASH_SIZE; j++) {
                 BigInteger n = state[j].shiftRight((2*i)).and(MAP[0]);
                 complete = complete && (n.equals(MAP[1]));
             }
@@ -138,7 +140,7 @@ public class IotaCurlMiner {
         ctx.doAbsorb(trx, TX_HEADER_SZ);
 
         for (int i = 0; i < 3*IotaCurlHash.IOTACURL_STATE_SZ; i++) {
-            midState[i] = (i < 3*IotaCurlHash.IOTACURL_HASH_SZ) ? BigInteger.ZERO
+            midState[i] = (i < HASH_SIZE) ? BigInteger.ZERO
                     : MAP_EX[ctx.getCurlStateValue(i) + 1];
         }
 
@@ -149,8 +151,8 @@ public class IotaCurlMiner {
     }
 
     public void powFinalize(char [] txar, long result) {
-        IotaCurlUtils.iotaCurlTritsAdd(approvalNonce, 3*IotaCurlHash.IOTACURL_HASH_SZ, result);
-        IotaCurlUtils.iotaCurlTrits2Trytes(txar, TX_HEADER_SZ, approvalNonce, 3*IotaCurlHash.IOTACURL_HASH_SZ);
+        IotaCurlUtils.iotaCurlTritsAdd(approvalNonce, HASH_SIZE, result);
+        IotaCurlUtils.iotaCurlTrits2Trytes(txar, TX_HEADER_SZ, approvalNonce, HASH_SIZE);
     }
 
     public String doCurlPowSingleThread(String tx, final int minWeightMagnitude) {

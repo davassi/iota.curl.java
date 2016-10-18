@@ -84,6 +84,12 @@ public class IotaCurlUtils {
         }
     }
 
+    // strict min
+    // Math.min is (a <= b) ? a : b;
+    public static int smin(int a, int b) {
+        return (a < b) ? a : b;
+    }
+
     /*
      * That's the only way to convert to a BigInteger an unsigned literal long.
      * Java does not have unsigned long, therefore any literal representation is signed.

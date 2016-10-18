@@ -38,15 +38,12 @@ public class IotaCurlHash {
         return ctx.doFinalize();
     }
 
-    private static int min(int a, int b) {
-        return (a < b) ? a : b;
-    }
     /**
      * Absorb given trytes.
      */
     protected void doAbsorb(final char [] trytes, final int len) {
         for(int i=0; i<len; i+=IOTACURL_HASH_SZ) {
-            IotaCurlUtils.iotaCurlTrytes2Trits(curlState.state, i, trytes, min(len-i, IOTACURL_HASH_SZ));
+            IotaCurlUtils.iotaCurlTrytes2Trits(curlState.state, i, trytes, IotaCurlUtils.smin(len-i, IOTACURL_HASH_SZ));
             doHashTransform(curlState.state);
         }
     }

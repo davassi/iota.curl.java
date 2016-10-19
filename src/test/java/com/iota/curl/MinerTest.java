@@ -72,19 +72,20 @@ public class MinerTest {
     public void shouldTransform() {
         int SIZE = 729;
         final IotaCurlMiner iotacurl = new IotaCurlMiner();
-        BigInteger[] state = new BigInteger[SIZE];
+        long[] state = new long[SIZE];
         for (int i = 0; i<SIZE;i++) {
-            state[i] = BigInteger.valueOf(i << 2);
+            state[i] = (i << 2);
         }
         System.err.println(Arrays.toString(state));
-        //iotacurl.doPowTransform(state);
+        iotacurl.doPowTransform(state);
         System.err.println(Arrays.toString(state));
         System.err.println(Arrays.toString(doTransResult));
 
         // ref 0, 588, 3224, 3644, 4004, 3172, 780, 888, 844, 3328, 552, 980, 424,
         Long[] arr = Arrays.stream(state)
                 .limit(20)
-                .map(BigInteger::longValue)
+                .map(Long::new)
+                .boxed()
                 .toArray(Long[]::new);
 
         Long[] res = Arrays.stream(doTransResult)

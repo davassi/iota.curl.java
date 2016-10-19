@@ -1,6 +1,7 @@
 
-Porting of IOTA's Proof of Work function in Java, called CURL.
-Curl technically is a sponge function (https://en.wikipedia.org/wiki/Sponge_function)
+Java Porting of IOTA's Proof of Work function, "CURL".
+
+CURL technically is a sponge function (https://en.wikipedia.org/wiki/Sponge_function)
 
 To execute:
 

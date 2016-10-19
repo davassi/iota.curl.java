@@ -96,7 +96,8 @@ public class IotaCurlUtils {
      *
      * for instance, 0xffffffffffffffffL is -1 and not 18446744073709551615 (twice the signed Long.MAX_VALUE)
      */
-    public static BigInteger literalUnsignedLong(final long input) {
+    @Deprecated
+    public static BigInteger deprecatedLiteralUnsignedLong(final long input) {
         return new BigInteger(1, ByteBuffer.allocate(8).putLong(input).array());
     }
 

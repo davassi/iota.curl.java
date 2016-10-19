@@ -9,5 +9,12 @@ To execute:
 
 where "in" is a 2673 String character lenght composed by [A-Z] and '9'
 	
+To compile:
+	
+	mvn clean compile
+
+To test:
+
+	mvn test
 	
 	

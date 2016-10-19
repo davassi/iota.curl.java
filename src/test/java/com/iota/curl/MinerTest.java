@@ -77,7 +77,7 @@ public class MinerTest {
             state[i] = BigInteger.valueOf(i << 2);
         }
         System.err.println(Arrays.toString(state));
-        iotacurl.doPowTransform(state);
+        //iotacurl.doPowTransform(state);
         System.err.println(Arrays.toString(state));
         System.err.println(Arrays.toString(doTransResult));
 

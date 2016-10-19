@@ -1,7 +1,9 @@
 package com.iota.curl;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.stream.LongStream;
 
 /**
  * Iota Curl Core mining functions.
@@ -18,13 +20,13 @@ public class IotaCurlMiner {
     public static final BigInteger MASK2 = IotaCurlUtils.literalUnsignedLong(LMASK2);
     public static final BigInteger MASK3 = IotaCurlUtils.literalUnsignedLong(LMASK3);
 
-    static final BigInteger[] MAP = {
-        BigInteger.valueOf(0b11),
-        BigInteger.valueOf(0b01),
-        BigInteger.valueOf(0b10)
+    static final long[] MAP = {
+        (0b11),
+        (0b01),
+        (0b10)
     };
 
-    static final BigInteger[] MAP_EX = { MASK3, MASK1, MASK2 };
+    static final long[] MAP_EX = { LMASK3, LMASK1, LMASK2 };
 
     // The length of transaction header (before approvalNonce) in trytes.
     public static final int TX_HEADER_SZ = 2430;
@@ -62,33 +64,33 @@ public class IotaCurlMiner {
         return IotaCurlUtils.literalUnsignedLong(ld(b.longValue(), c.longValue()));
     }
 
-    protected final void doPowAbsorb(final BigInteger[] state, final int[] trits) {
+    protected final void doPowAbsorb(final long[] state, final int[] trits) {
         for (int i=0; i<HASH_SIZE; i++) {
             state[i] = MAP_EX[trits[i]+1];
         }
     }
 
-    protected void doPowTransform(final BigInteger [] state) {
-        BigInteger[] state1 = state; // shallow copy
-        BigInteger[] state2 = Arrays.copyOf(state, state.length);
+    protected void doPowTransform(final long [] state) {
+        long[] state1 = state; // shallow copy
+        long[] state2 = Arrays.copyOf(state, state.length);
 
         for(int r=0; r<27; r++) {
             {
-                final BigInteger a = state2[0];
-                final BigInteger b = state2[364];
-                final BigInteger c = c(a);
-                state1[0] = d(b, c);
+                final long a = state2[0];
+                final long b = state2[364];
+                final long c = lc(a);
+                state1[0] = ld(b, c);
             }
             for (int i = 0; i < (STATE_SIZE / 2); i++) {
-                final BigInteger a3 = state2[364 - i - 1];
-                final BigInteger a1 = state2[364 - i];
-                final BigInteger a2 = state2[729 - i - 1];
-                final BigInteger c1 = c(a1);
-                final BigInteger c2 = c(a2);
-                state1[2 * i + 1] = d(a2, c1);
-                state1[2 * i + 2] = d(a3, c2);
+                final long a3 = state2[364 - i - 1];
+                final long a1 = state2[364 - i];
+                final long a2 = state2[729 - i - 1];
+                final long c1 = lc(a1);
+                final long c2 = lc(a2);
+                state1[2 * i + 1] = ld(a2, c1);
+                state1[2 * i + 2] = ld(a3, c2);
             }
-            final BigInteger[] t = state1;
+            final long[] t = state1;
             state1 = state2;
             state2 = t;
         }
@@ -96,14 +98,16 @@ public class IotaCurlMiner {
 
     private long doWork(final int minWeightMagnitude, long offset) {
         final int [] an = Arrays.copyOf(approvalNonce, HASH_SIZE);
-        BigInteger [] state = Arrays.copyOf(midState, STATE_SIZE);
+        //long [] state = Arrays.copyOf(midState, STATE_SIZE);
+
+        long[] state = Arrays.stream(midState).mapToLong(i -> i.longValue()).toArray();
 
         IotaCurlUtils.iotaCurlTritsAdd(an, HASH_SIZE, offset);
 
         // Search. Process approvalNonce.
         for(int i=0; i<PARALLEL; i++) {
             for(int j=0; j<HASH_SIZE; j++) {
-                state[j] = state[j].or((MAP[an[j]+1]).shiftLeft(i*2));
+                state[j] |= ((MAP[an[j]+1]) << (i*2));
             }
             IotaCurlUtils.iotaCurlTritsIncrement(an, HASH_SIZE);
         }
@@ -123,8 +127,8 @@ public class IotaCurlMiner {
             boolean complete = true;
 
             for(int j=HASH_SIZE-minWeightMagnitude; j<HASH_SIZE; j++) {
-                BigInteger n = state[j].shiftRight((2*i)).and(MAP[0]);
-                complete = complete && (n.equals(MAP[1]));
+                long n = state[j] >> ((2*i)) & (MAP[0]);
+                complete = complete && (n == (MAP[1]));
             }
             if(!complete) {
                 continue;
@@ -142,7 +146,7 @@ public class IotaCurlMiner {
 
         for (int i = 0; i < STATE_SIZE; i++) {
             midState[i] = (i < HASH_SIZE) ? BigInteger.ZERO
-                    : MAP_EX[ctx.getCurlStateValue(i) + 1];
+                    : BigInteger.valueOf(MAP_EX[ctx.getCurlStateValue(i) + 1]);
         }
 
         IotaCurlUtils.iotaCurlTrytes2Trits(approvalNonce, 7290 / 3, trx, IotaCurlHash.IOTACURL_HASH_SZ);

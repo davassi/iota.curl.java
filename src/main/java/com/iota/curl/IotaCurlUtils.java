@@ -2,7 +2,6 @@ package com.iota.curl;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 /**
  * Utility functions.
@@ -99,6 +98,48 @@ public class IotaCurlUtils {
     @Deprecated
     public static BigInteger literalUnsignedLong(final long input) {
         return new BigInteger(1, ByteBuffer.allocate(8).putLong(input).array());
+    }
+
+    private static final int not(int a) {
+        return a^0b1;
+    }
+
+    //https://s16.postimg.org/dthtvw3id/binary_curl.png
+    private static int rt(int a, int b, int c, int d) {
+        return ((a ^ d) & (not(b) | c));
+    }
+
+    private static int lt(int a, int b, int c, int d) {
+        return ((b ^ c) | (rt(a,b,c,d)));
+    }
+
+    public static int binaryTruth(int a, int b, int c, int d) {
+        int x1 = not(rt(a,b,c,d));
+        int x2 = lt(a,b,c,d);
+
+        if (x1 == 1 && x2 == 0) {
+            return -1;
+        }
+        if (x1 == 1 && x2 == 1) {
+            return 0;
+        }
+        return 1;
+    }
+
+    public static int invokeBinaryTruthOn(int x1, int x2) {
+        int a,b,c,d;
+        switch (x1) { // switch is direct O(1)
+            case 0: {a=1; b=1;} break;
+            case 1: {a=0; b=1;} break;
+            default: {a=1; b=0;}
+        }
+        switch (x2) {
+            case 0: {c=1; d=1;} break;
+            case 1: {c=0; d=1;} break;
+            default: {c=1; d=0;}
+        }
+
+        return IotaCurlUtils.binaryTruth(a,b,c,d);
     }
 
 

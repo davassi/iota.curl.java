@@ -120,8 +120,7 @@ public class IotaCurlMiner {
         ctx.doAbsorb(trx, TX_HEADER_SZ);
 
         for (int i = 0; i < STATE_SIZE; i++) {
-            midState[i] = (i < HASH_SIZE) ? 0L
-                    : (MAP_EX[ctx.getCurlStateValue(i) + 1]);
+            midState[i] = (i < HASH_SIZE) ? 0L : (MAP_EX[ctx.getCurlStateValue(i) + 1]);
         }
 
         IotaCurlUtils.iotaCurlTrytes2Trits(approvalNonce, 7290 / 3, trx, IotaCurlHash.IOTACURL_HASH_SZ);

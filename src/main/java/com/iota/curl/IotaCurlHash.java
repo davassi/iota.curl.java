@@ -53,6 +53,9 @@ public class IotaCurlHash {
 
         for(int r=0; r<27; r++) {
             state1[0] = IotaCurlUtils.TRUTH_TABLE[state2[0] + (state2[364] << 2) + 5];
+
+            // state1[0] = IotaCurlUtils.invokeBinaryTruthOn(state2[0], state2[364]);
+
             for(int i=0; i<3*IOTACURL_STATE_SZ/2; i++) {
                 state1[2*i+1] = IotaCurlUtils.TRUTH_TABLE[state2[364-i] + (state2[729-(i+1)] << 2) + 5];
                 state1[2*i+2] = IotaCurlUtils.TRUTH_TABLE[state2[729-(i+1)] + (state2[364-(i+1)] << 2) + 5];

@@ -1,6 +1,9 @@
 package com.iota.curl;
 
 import java.util.Arrays;
+import java.util.stream.IntStream;
+import java.util.stream.LongStream;
+import java.util.stream.Stream;
 
 /**
  * Iota Curl Core mining functions.
@@ -146,12 +149,21 @@ public class IotaCurlMiner {
     }
 
     public String iotaCurlProofOfWork(String tx, final int minWeightMagnitude) {
-        return doCurlPowSingleThread(tx, minWeightMagnitude);
+        return doCurlPowMultiThread(tx, minWeightMagnitude);
     }
 
     public String doCurlPowMultiThread(String tx, final int minWeightMagnitude) {
-        // still left TODO
-        return null;
+        final char[] trax = powInit(tx);
+
+        long result = LongStream.iterate(0l, i -> i + 32)
+                .parallel()
+                .map(offset -> doWork(minWeightMagnitude, offset))
+                .filter(r -> r != 0)
+                .findFirst()
+                .getAsLong();
+
+        powFinalize(trax, result);
+        return new String(trax);
     }
 
 }

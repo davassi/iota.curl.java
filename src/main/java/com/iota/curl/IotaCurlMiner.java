@@ -1,9 +1,12 @@
 package com.iota.curl;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.stream.IntStream;
-import java.util.stream.LongStream;
-import java.util.stream.Stream;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Iota Curl Core mining functions.
@@ -149,20 +152,51 @@ public class IotaCurlMiner {
     }
 
     public String iotaCurlProofOfWork(String tx, final int minWeightMagnitude) {
-        return doCurlPowMultiThread(tx, minWeightMagnitude);
+        try {
+            return doCurlPowMultiThread(tx, minWeightMagnitude);
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        throw new IllegalStateException();
     }
 
-    public String doCurlPowMultiThread(String tx, final int minWeightMagnitude) {
+    public String doCurlPowMultiThread(String tx, final int minWeightMagnitude) throws ExecutionException, InterruptedException {
         final char[] trax = powInit(tx);
 
-        long result = LongStream.iterate(0l, i -> i + 32)
-                .parallel()
-                .map(offset -> doWork(minWeightMagnitude, offset))
-                .filter(r -> r != 0)
-                .findFirst()
-                .getAsLong();
+        final int cpus = Runtime.getRuntime().availableProcessors();
+        final ExecutorService executor = Executors.newFixedThreadPool(cpus-1);
 
-        powFinalize(trax, result);
+        final AtomicLong offset = new AtomicLong(0l);
+        final AtomicLong result = new AtomicLong(0l);
+        final AtomicBoolean finish = new AtomicBoolean(false);
+
+        final Collection<Callable<Long>> tasks = new ArrayList<>();
+        for (int i = 0; i<cpus-1; i++) {
+            tasks.add (() -> {
+                while (result.get() == 0 && finish.get() == false) {
+                    result.compareAndSet(0, doWork(minWeightMagnitude, offset.getAndAdd(32l)));
+                }
+                finish.set(true);
+                return result.get();
+            });
+        }
+        final List<Future<Long>> res = executor.invokeAll(tasks);
+
+        final Long r = res.stream().map(t -> {
+            try {
+                return t.get();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
+            return 0;
+        }).map(t -> t.longValue()).findFirst().get();
+        //System.err.println("vai deh " + new Long(r.longValue()));
+        executor.shutdown();
+        powFinalize(trax, r);
         return new String(trax);
     }
 

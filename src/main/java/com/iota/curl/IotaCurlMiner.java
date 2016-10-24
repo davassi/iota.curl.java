@@ -194,7 +194,6 @@ public class IotaCurlMiner {
             }
             return 0;
         }).map(t -> t.longValue()).findFirst().get();
-        //System.err.println("vai deh " + new Long(r.longValue()));
         executor.shutdown();
         powFinalize(trax, r);
         return new String(trax);

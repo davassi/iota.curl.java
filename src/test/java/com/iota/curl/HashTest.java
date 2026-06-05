@@ -50,6 +50,12 @@ public class HashTest {
         IotaCurlHash.iotaCurlHash("ABC", 4);
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void iotaCurlHashShouldRejectNonTrytes() {
+        // 'a' is not in the tryte alphabet: fail cleanly instead of AIOOBE.
+        IotaCurlHash.iotaCurlHash("ABCa", 4);
+    }
+
     @Test
     public void incrementShouldAddOneInBalancedTernary() {
         int[] trits = { 0, 0, 0 };

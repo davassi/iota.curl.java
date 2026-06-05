@@ -46,6 +46,11 @@ public class IotaCurlHash {
         if (len < 0 || len > tx.length()) {
             throw new IllegalArgumentException("len must be in [0, " + tx.length() + "] but was " + len);
         }
+        for (int i = 0; i < len; i++) {
+            if (!IotaCurlUtils.isTryte(tx.charAt(i))) {
+                throw new IllegalArgumentException("tx must contain only the tryte alphabet [9A-Z]");
+            }
+        }
         final IotaCurlHash ctx = new IotaCurlHash();
         ctx.doAbsorb(tx.toCharArray(), len);
         return ctx.doFinalize();

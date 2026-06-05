@@ -3,9 +3,11 @@ package com.iota.curl;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -116,7 +118,7 @@ public class IotaCurlMiner {
             }
             return (offset + i); // If the solution has been found.
         }
-        return 0;
+        return -1; // Not found. 0 is a valid nonce, so it cannot be the sentinel.
     }
 
     private final char[] powInit(final String tx) {
@@ -144,59 +146,83 @@ public class IotaCurlMiner {
         final char[] trax = powInit(tx);
 
         long offset = 0L, result;
-        while ((result = doWork(minWeightMagnitude, offset)) == 0) {
+        while ((result = doWork(minWeightMagnitude, offset)) < 0) {
             offset += PARALLEL;
         }
         powFinalize(trax, result);
         return new String(trax);
     }
 
+    /**
+     * Runs the proof of work and returns the mined transaction trytes.
+     * Translates the checked concurrency exceptions into an unchecked failure
+     * while preserving the cause, and restores the interrupt flag.
+     */
     public String iotaCurlProofOfWork(String tx, final int minWeightMagnitude) {
         try {
             return doCurlPowMultiThread(tx, minWeightMagnitude);
-        } catch (ExecutionException e) {
-            e.printStackTrace();
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Proof of work was interrupted", e);
+        } catch (ExecutionException e) {
+            throw new IllegalStateException("Proof of work failed", e.getCause());
         }
-        throw new IllegalStateException();
     }
 
     public String doCurlPowMultiThread(String tx, final int minWeightMagnitude) throws ExecutionException, InterruptedException {
         final char[] trax = powInit(tx);
 
-        final int cpus = Runtime.getRuntime().availableProcessors();
-        final ExecutorService executor = Executors.newFixedThreadPool(cpus-1);
+        final int workers = workerCount(Runtime.getRuntime().availableProcessors());
+        final ExecutorService executor = Executors.newFixedThreadPool(workers);
 
-        final AtomicLong offset = new AtomicLong(0l);
-        final AtomicLong result = new AtomicLong(0l);
-        final AtomicBoolean finish = new AtomicBoolean(false);
+        // Shared cursor over nonce blocks plus the smallest valid nonce found so
+        // far. Workers stop grabbing blocks once the next offset is >= best, so
+        // every block that could still hold a smaller nonce is searched. The
+        // result is therefore deterministic and equal to the single-threaded
+        // smallest-nonce search.
+        final AtomicLong nextOffset = new AtomicLong(0L);
+        final AtomicLong best = new AtomicLong(Long.MAX_VALUE);
 
-        final Collection<Callable<Long>> tasks = new ArrayList<>();
-        for (int i = 0; i<cpus-1; i++) {
-            tasks.add (() -> {
-                while (result.get() == 0 && finish.get() == false) {
-                    result.compareAndSet(0, doWork(minWeightMagnitude, offset.getAndAdd(32l)));
-                }
-                finish.set(true);
-                return result.get();
-            });
-        }
-        final List<Future<Long>> res = executor.invokeAll(tasks);
-
-        final Long r = res.stream().map(t -> {
-            try {
-                return t.get();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (ExecutionException e) {
-                e.printStackTrace();
+        try {
+            final Collection<Callable<Void>> tasks = new ArrayList<>(workers);
+            for (int i = 0; i < workers; i++) {
+                tasks.add(() -> {
+                    long offset;
+                    while ((offset = nextOffset.getAndAdd(PARALLEL)) < best.get()) {
+                        final long found = doWork(minWeightMagnitude, offset);
+                        if (found >= 0) {
+                            long current;
+                            do {
+                                current = best.get();
+                            } while (found < current && !best.compareAndSet(current, found));
+                        }
+                    }
+                    return null;
+                });
             }
-            return 0;
-        }).map(t -> t.longValue()).findFirst().get();
-        executor.shutdown();
-        powFinalize(trax, r);
+            // invokeAll blocks until every worker finishes; get() re-throws any
+            // exception a worker raised instead of silently swallowing it.
+            for (final Future<Void> task : executor.invokeAll(tasks)) {
+                task.get();
+            }
+        } finally {
+            executor.shutdown();
+        }
+
+        final long result = best.get();
+        if (result == Long.MAX_VALUE) {
+            throw new IllegalStateException("Proof of work found no valid nonce");
+        }
+        powFinalize(trax, result);
         return new String(trax);
+    }
+
+    /**
+     * Number of worker threads: one per CPU leaving one for the caller, but
+     * always at least one so single-core machines still run.
+     */
+    static int workerCount(final int availableProcessors) {
+        return Math.max(1, availableProcessors - 1);
     }
 
 }

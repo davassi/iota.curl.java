@@ -33,8 +33,17 @@ public class IotaCurlMiner {
     // Full transaction length in trytes: header + approvalNonce + trunk + branch.
     public static final int TX_LENGTH = TX_HEADER_SZ + 3 * IotaCurlHash.IOTACURL_HASH_SZ; // 2673
 
-    private static final int HASH_SIZE = 3*IotaCurlHash.IOTACURL_HASH_SZ;
-    private static final int STATE_SIZE = 3*IotaCurlHash.IOTACURL_STATE_SZ;
+    private static final int HASH_SIZE = 3*IotaCurlHash.IOTACURL_HASH_SZ;   // 243 trits
+    private static final int STATE_SIZE = 3*IotaCurlHash.IOTACURL_STATE_SZ; // 729 trits
+
+    // Curl-P-27: 27 rounds, index permutation split at the state midpoint.
+    private static final int NUMBER_OF_ROUNDS = 27;
+    private static final int PIVOT = STATE_SIZE / 2; // 364
+
+    // Tryte offsets of the trailing transaction fields within the raw tx.
+    private static final int APPROVAL_NONCE_OFFSET = TX_HEADER_SZ;                               // 2430
+    private static final int TRUNK_OFFSET = TX_HEADER_SZ + IotaCurlHash.IOTACURL_HASH_SZ;        // 2511
+    private static final int BRANCH_OFFSET = TX_HEADER_SZ + 2 * IotaCurlHash.IOTACURL_HASH_SZ;   // 2592
 
     private final long[] midState = new long[3 * IotaCurlHash.IOTACURL_STATE_SZ];
 
@@ -58,21 +67,27 @@ public class IotaCurlMiner {
         }
     }
 
+    /**
+     * Bit-sliced Curl-P-27 transform: the same permutation as the scalar hash,
+     * but each long carries {@value #PARALLEL} trits (2 bits each) processed in
+     * parallel via lc()/ld(). The result lands in {@code state} because the
+     * round count (27) is odd.
+     */
     protected void doPowTransform(final long [] state) {
-        long[] state1 = state; // shallow copy
+        long[] state1 = state; // alias: even rounds write here, so the final round does too
         long[] state2 = Arrays.copyOf(state, state.length);
 
-        for(int r=0; r<27; r++) {
+        for(int r=0; r<NUMBER_OF_ROUNDS; r++) {
             {
                 final long a = state2[0];
-                final long b = state2[364];
+                final long b = state2[PIVOT];
                 final long c = lc(a);
                 state1[0] = ld(b, c);
             }
-            for (int i = 0; i < (STATE_SIZE / 2); i++) {
-                final long a3 = state2[364 - i - 1];
-                final long a1 = state2[364 - i];
-                final long a2 = state2[729 - i - 1];
+            for (int i = 0; i < PIVOT; i++) {
+                final long a3 = state2[PIVOT - i - 1];
+                final long a1 = state2[PIVOT - i];
+                final long a2 = state2[STATE_SIZE - i - 1];
                 final long c1 = lc(a1);
                 final long c2 = lc(a2);
                 state1[2 * i + 1] = ld(a2, c1);
@@ -135,9 +150,9 @@ public class IotaCurlMiner {
             midState[i] = (i < HASH_SIZE) ? 0L : (MAP_EX[ctx.getCurlStateValue(i) + 1]);
         }
 
-        IotaCurlUtils.iotaCurlTrytes2Trits(approvalNonce, 7290 / 3, trx, IotaCurlHash.IOTACURL_HASH_SZ);
-        IotaCurlUtils.iotaCurlTrytes2Trits(trunkTransaction, 7533 / 3, trx, IotaCurlHash.IOTACURL_HASH_SZ);
-        IotaCurlUtils.iotaCurlTrytes2Trits(branchTransaction, 7776 / 3, trx, IotaCurlHash.IOTACURL_HASH_SZ);
+        IotaCurlUtils.iotaCurlTrytes2Trits(approvalNonce, APPROVAL_NONCE_OFFSET, trx, IotaCurlHash.IOTACURL_HASH_SZ);
+        IotaCurlUtils.iotaCurlTrytes2Trits(trunkTransaction, TRUNK_OFFSET, trx, IotaCurlHash.IOTACURL_HASH_SZ);
+        IotaCurlUtils.iotaCurlTrytes2Trits(branchTransaction, BRANCH_OFFSET, trx, IotaCurlHash.IOTACURL_HASH_SZ);
         return trx;
     }
 

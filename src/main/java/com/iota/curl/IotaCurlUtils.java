@@ -66,15 +66,17 @@ public class IotaCurlUtils {
     }
 
     /**
-     * Convert trytes into trits.
+     * Converts trytes into trits. The offset indexes the trytes side (here the
+     * input); trits are always written starting at index 0.
      *
-     * @param trits Output.
-     * @param trytes Input.
-     * @param len The number of trytes to load.
+     * @param trits        output trits, written from index 0 (3 per tryte)
+     * @param trytesOffset starting index within the {@code trytes} input
+     * @param trytes       input trytes
+     * @param len          number of trytes to convert
      */
-    public static void iotaCurlTrytes2Trits(int [] trits, final int offset, final char[] trytes, final int len) {
+    public static void iotaCurlTrytes2Trits(int [] trits, final int trytesOffset, final char[] trytes, final int len) {
         for(int i=0; i<len; i++) {
-            final int idx = (trytes[i+offset]=='9' ? 0 : trytes[i+offset]-'A'+1);
+            final int idx = (trytes[i+trytesOffset]=='9' ? 0 : trytes[i+trytesOffset]-'A'+1);
             trits[3*i+0] = IOTACURL_TRYTE2TRITS_TBL[idx][0];
             trits[3*i+1] = IOTACURL_TRYTE2TRITS_TBL[idx][1];
             trits[3*i+2] = IOTACURL_TRYTE2TRITS_TBL[idx][2];
@@ -82,14 +84,16 @@ public class IotaCurlUtils {
     }
 
     /**
+     * Converts trits into trytes. As in {@link #iotaCurlTrytes2Trits} the offset
+     * indexes the trytes side, but here the trytes are the output (written from
+     * {@code trytesOffset}) and the trits are read from index 0.
      *
-     * Convert trits into trytes.
-     *
-     * @param trytes
-     * @param trits
-     * @param len
+     * @param trytes       output trytes
+     * @param trytesOffset starting index within the {@code trytes} output
+     * @param trits        input trits, read from index 0
+     * @param len          number of trits to convert
      */
-    public static void iotaCurlTrits2Trytes(char [] trytes, final int offset, final int[] trits, final int len) {
+    public static void iotaCurlTrits2Trytes(char [] trytes, final int trytesOffset, final int[] trits, final int len) {
         for(int i=0; i<len; i+=3) {
             int j = trits[i];
             if(i+1 < len) {
@@ -101,7 +105,7 @@ public class IotaCurlUtils {
             if(j < 0) {
                 j += 27;
             }
-            trytes[i/3+offset] = TRYTE_ALPHABET.charAt(j);
+            trytes[i/3+trytesOffset] = TRYTE_ALPHABET.charAt(j);
         }
     }
 
@@ -142,6 +146,10 @@ public class IotaCurlUtils {
     public static BigInteger literalUnsignedLong(final long input) {
         return new BigInteger(1, ByteBuffer.allocate(8).putLong(input).array());
     }
+
+    // The methods below derive the Curl S-box from boolean logic. They are a
+    // reference/verification of TRUTH_TABLE (see HashTest) and are NOT used on
+    // the hashing hot path, which indexes TRUTH_TABLE directly.
 
     private static final int not(int a) {
         return a^0b1;

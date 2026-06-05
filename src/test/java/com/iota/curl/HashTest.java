@@ -16,6 +16,24 @@ public class HashTest {
     private static String hash = "COIVKVQTQEHKZVAGBUFURRUG9CVXHWHCBIPKWNMIZDSSSRENFYYFOGTOTFMCEHLQKJ9PHKLWOH9XRHR99";
 
     @Test
+    public void incrementShouldAddOneInBalancedTernary() {
+        int[] trits = { 0, 0, 0 };
+        IotaCurlUtils.iotaCurlTritsIncrement(trits, trits.length);
+        Assert.assertArrayEquals(new int[]{ 1, 0, 0 }, trits);
+        IotaCurlUtils.iotaCurlTritsIncrement(trits, trits.length);
+        Assert.assertArrayEquals(new int[]{ -1, 1, 0 }, trits); // 1 -> carry
+    }
+
+    @Test
+    public void incrementShouldWrapSaturatedArrayWithoutOverflow() {
+        // All trits at the maximum (1): a full carry must wrap to all -1
+        // and drop the final carry, never reading past the array bound.
+        int[] trits = { 1, 1, 1 };
+        IotaCurlUtils.iotaCurlTritsIncrement(trits, trits.length);
+        Assert.assertArrayEquals(new int[]{ -1, -1, -1 }, trits);
+    }
+
+    @Test
     public void shouldHash() {
         final String hashed = IotaCurlHash.iotaCurlHash(tx, 2673);
         System.err.println(hashed);

@@ -78,7 +78,10 @@ public class IotaCurlUtils {
     }
 
     public static void iotaCurlTritsIncrement(int[] trits, int len) {
-        for(int i=0; (++trits[i]>1) && (i<len); i++) {
+        // Balanced-ternary increment by one. The bound check must come first:
+        // evaluating ++trits[i] before (i < len) would read trits[len] on a
+        // full carry (all trits saturated) and throw ArrayIndexOutOfBounds.
+        for(int i=0; i<len && ++trits[i]>1; i++) {
             trits[i]=-1;
         }
     }

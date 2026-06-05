@@ -33,6 +33,12 @@ public class IotaCurlHash {
     private final CurlState curlState = new CurlState();
 
     public static String iotaCurlHash(final String tx, final int len) {
+        if (tx == null) {
+            throw new IllegalArgumentException("tx must not be null");
+        }
+        if (len < 0 || len > tx.length()) {
+            throw new IllegalArgumentException("len must be in [0, " + tx.length() + "] but was " + len);
+        }
         final IotaCurlHash ctx = new IotaCurlHash();
         ctx.doAbsorb(tx.toCharArray(), len);
         return ctx.doFinalize();

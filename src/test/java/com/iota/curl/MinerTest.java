@@ -76,6 +76,11 @@ public class MinerTest {
         Assert.assertEquals(15, IotaCurlMiner.workerCount(16));
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void powShouldRejectTransactionShorterThanRequired() {
+        new IotaCurlMiner().doCurlPowSingleThread("ABC", 5);
+    }
+
     @Test
     public void shouldShift() {
         // java: 3 << 62 = -4611686018427387904

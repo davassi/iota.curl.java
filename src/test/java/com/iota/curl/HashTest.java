@@ -16,6 +16,41 @@ public class HashTest {
     private static String hash = "COIVKVQTQEHKZVAGBUFURRUG9CVXHWHCBIPKWNMIZDSSSRENFYYFOGTOTFMCEHLQKJ9PHKLWOH9XRHR99";
 
     @Test
+    public void isTrytesShouldAcceptOnlyTheTryteAlphabet() {
+        Assert.assertTrue(IotaCurlUtils.isTrytes("9ABCXYZ"));
+        Assert.assertTrue(IotaCurlUtils.isTrytes("")); // no invalid char present
+        Assert.assertFalse(IotaCurlUtils.isTrytes(null));
+        Assert.assertFalse(IotaCurlUtils.isTrytes("abc")); // lowercase
+        Assert.assertFalse(IotaCurlUtils.isTrytes("AB8")); // 8 is not a tryte
+        Assert.assertFalse(IotaCurlUtils.isTrytes("A B")); // space
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void requireTrytesShouldRejectWrongLength() {
+        IotaCurlUtils.requireTrytes("ABC", 4, "tx");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void requireTrytesShouldRejectInvalidChars() {
+        IotaCurlUtils.requireTrytes("AB!", 3, "tx");
+    }
+
+    @Test
+    public void requireTrytesShouldAcceptValidInput() {
+        IotaCurlUtils.requireTrytes("AB9", 3, "tx"); // must not throw
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void iotaCurlHashShouldRejectNull() {
+        IotaCurlHash.iotaCurlHash(null, 0);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void iotaCurlHashShouldRejectLengthBeyondInput() {
+        IotaCurlHash.iotaCurlHash("ABC", 4);
+    }
+
+    @Test
     public void incrementShouldAddOneInBalancedTernary() {
         int[] trits = { 0, 0, 0 };
         IotaCurlUtils.iotaCurlTritsIncrement(trits, trits.length);

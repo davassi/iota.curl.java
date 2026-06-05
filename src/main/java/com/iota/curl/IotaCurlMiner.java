@@ -30,6 +30,9 @@ public class IotaCurlMiner {
     // The length of transaction header (before approvalNonce) in trytes.
     public static final int TX_HEADER_SZ = 2430;
 
+    // Full transaction length in trytes: header + approvalNonce + trunk + branch.
+    public static final int TX_LENGTH = TX_HEADER_SZ + 3 * IotaCurlHash.IOTACURL_HASH_SZ; // 2673
+
     private static final int HASH_SIZE = 3*IotaCurlHash.IOTACURL_HASH_SZ;
     private static final int STATE_SIZE = 3*IotaCurlHash.IOTACURL_STATE_SZ;
 
@@ -122,6 +125,7 @@ public class IotaCurlMiner {
     }
 
     private final char[] powInit(final String tx) {
+        IotaCurlUtils.requireTrytes(tx, TX_LENGTH, "tx");
 
         final IotaCurlHash ctx = new IotaCurlHash();
         final char[] trx = tx.toCharArray();

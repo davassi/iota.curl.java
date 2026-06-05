@@ -25,6 +25,46 @@ public class IotaCurlUtils {
 
     public static final int[] TRUTH_TABLE = {1, 0, -1, 0, 1, -1, 0, 0, -1, 1, 0};
 
+    // The tryte alphabet: '9' encodes 0, 'A'..'Z' encode 1..26.
+    public static final String TRYTE_ALPHABET = "9ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    /** True if the character belongs to the tryte alphabet [9A-Z]. */
+    public static boolean isTryte(final char c) {
+        return c == '9' || (c >= 'A' && c <= 'Z');
+    }
+
+    /** True if {@code s} is non-null and every character is a tryte. */
+    public static boolean isTrytes(final String s) {
+        if (s == null) {
+            return false;
+        }
+        for (int i = 0; i < s.length(); i++) {
+            if (!isTryte(s.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Validates a trytes input at a system boundary.
+     *
+     * @throws IllegalArgumentException if {@code value} is null, of the wrong
+     *         length, or contains a character outside the tryte alphabet.
+     */
+    public static void requireTrytes(final String value, final int expectedLength, final String name) {
+        if (value == null) {
+            throw new IllegalArgumentException(name + " must not be null");
+        }
+        if (value.length() != expectedLength) {
+            throw new IllegalArgumentException(
+                    name + " must be " + expectedLength + " trytes long but was " + value.length());
+        }
+        if (!isTrytes(value)) {
+            throw new IllegalArgumentException(name + " must contain only the tryte alphabet [9A-Z]");
+        }
+    }
+
     /**
      * Convert trytes into trits.
      *
@@ -61,7 +101,7 @@ public class IotaCurlUtils {
             if(j < 0) {
                 j += 27;
             }
-            trytes[i/3+offset] = "9ABCDEFGHIJKLMNOPQRSTUVWXYZ".charAt(j);
+            trytes[i/3+offset] = TRYTE_ALPHABET.charAt(j);
         }
     }
 
